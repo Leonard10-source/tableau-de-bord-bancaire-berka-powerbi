@@ -1,0 +1,13 @@
+// Table de calendrier : une ligne par jour, du 1er janvier 1993 au 31 décembre 1998 (2 191 jours).
+// À marquer comme table de dates sur la colonne Date (Outils de table > Marquer en tant que table de dates).
+// NomMois est à trier par la colonne Mois (Outils de colonne > Trier par colonne).
+
+DimCalendrier =
+ADDCOLUMNS(
+    CALENDAR(DATE(1993, 1, 1), DATE(1998, 12, 31)),
+    "Annee", YEAR([Date]),
+    "Mois", MONTH([Date]),
+    "NomMois", FORMAT([Date], "mmm"),
+    "Trimestre", "T" & ROUNDUP(MONTH([Date]) / 3, 0),
+    "DebutMois", DATE(YEAR([Date]), MONTH([Date]), 1)
+)

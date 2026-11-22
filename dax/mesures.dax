@@ -1,0 +1,87 @@
+// Les 18 mesures du tableau de bord, regroupées dans une table de mesures.
+// Valeurs totales de contrôle (sans filtre) indiquées en commentaire.
+
+
+// ============ PORTEFEUILLE DE CRÉDIT ============
+
+// Nombre de prêts dans le contexte de filtre courant. Total : 682.
+Nb Prets = COUNTROWS(Prets)
+
+// Prêts problématiques : B (terminé, non remboursé) ou D (en cours, en difficulté). Total : 76.
+Nb Prets BD = CALCULATE([Nb Prets], Prets[statut_pret] IN {"B", "D"})
+
+// Part de prêts B/D. DIVIDE évite l'erreur si le dénominateur est nul. Total : 11,14 %.
+Taux BD = DIVIDE([Nb Prets BD], [Nb Prets])
+
+// Montant initial accordé. Total : 103 261 740.
+Montant Prets = SUM(Prets[montant_pret])
+
+// Montant initial des prêts B/D. Total : 15 580 152.
+Montant BD = CALCULATE([Montant Prets], Prets[statut_pret] IN {"B", "D"})
+
+// Poids des prêts B/D dans l'encours initial. Total : 15,09 %.
+Part Montant BD = DIVIDE([Montant BD], [Montant Prets])
+
+// Taille moyenne d'un prêt. Total : 151 410,18.
+Montant Moyen Pret = DIVIDE([Montant Prets], [Nb Prets])
+
+// Taux de référence : ignore les filtres région, statut et durée.
+// Reste sensible aux filtres sexe, tranche d'âge et année. Total : 11,14 %.
+Taux BD Portefeuille =
+CALCULATE(
+    [Taux BD],
+    REMOVEFILTERS(DimDistrict),
+    REMOVEFILTERS(DimStatut),
+    REMOVEFILTERS(Prets[duree_mois])
+)
+
+// Message affiché sous 30 prêts pour éviter de sur-interpréter un petit échantillon.
+Alerte Effectif =
+IF([Nb Prets] < 30, "Effectif faible (moins de 30 prêts)", BLANK())
+
+
+// ============ FLUX MENSUELS ============
+// La table FluxMensuels n'est reliée qu'au calendrier : région, sexe et durée ne s'y appliquent pas.
+
+// Total des crédits. Total : 3 227 472 424,50.
+Entrees = SUM(FluxMensuels[entrees])
+
+// Total des débits. Total : 3 030 321 135,80.
+Sorties = SUM(FluxMensuels[sorties])
+
+// Entrées moins sorties. Total : 197 151 288,70.
+Flux Net = SUM(FluxMensuels[flux_net])
+
+// Nombre d'écritures. Total : 1 056 320.
+Transactions = SUM(FluxMensuels[nb_transactions])
+
+// Même mesure décalée d'un mois. N'a de sens que sur un axe mensuel (DebutMois).
+Transactions M-1 =
+CALCULATE([Transactions], DATEADD(DimCalendrier[Date], -1, MONTH))
+
+// Croissance d'un mois sur l'autre. Décembre 1997 à janvier 1998 : +51,90 %.
+Variation Transactions =
+DIVIDE([Transactions] - [Transactions M-1], [Transactions M-1])
+
+
+// ============ COMPTES ============
+
+// Nombre de comptes. Réagit à la région, pas à l'année. Total : 4 500.
+Nb Comptes = COUNTROWS(Comptes)
+
+// Active, pour ce seul calcul, la relation inactive avec la date d'ouverture.
+// Par année : 1 139, 439, 661, 1 363, 898 (1993 à 1997).
+Comptes Ouverts =
+CALCULATE(
+    COUNTROWS(Comptes),
+    USERELATIONSHIP(DimCalendrier[Date], Comptes[date_ouverture])
+)
+
+// Cumul des ouvertures jusqu'à la date courante : 1 139, 1 578, 2 239, 3 602, 4 500.
+// ALL(DimCalendrier) (la table entière) est nécessaire : avec ALL(DimCalendrier[Date]),
+// le filtre de l'année posé par l'axe du graphique subsiste et le cumul repart de zéro chaque année.
+Comptes Cumules =
+CALCULATE(
+    [Comptes Ouverts],
+    FILTER(ALL(DimCalendrier), DimCalendrier[Date] <= MAX(DimCalendrier[Date]))
+)

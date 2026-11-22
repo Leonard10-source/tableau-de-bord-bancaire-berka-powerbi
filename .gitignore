@@ -1,0 +1,19 @@
+# Systèmes
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers temporaires Office / Power BI
+~$*
+*.tmp
+*.bak
+*.pbix.bak
+.pbi/
+
+# Éditeurs
+.vscode/
+.vs/
+
+# Secrets et journaux
+.env
+*.log
